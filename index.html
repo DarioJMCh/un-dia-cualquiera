@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Un Día Cualquiera</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@400;600;800&family=Great+Vibes&display=swap">
+<style>
+/* Layout: una sola pantalla de juego, escenario arriba (con decorado de emoji) y panel de decisión abajo; look nocturno único */
+:root{
+  --bg:#14121f; --panel:#1f1c30; --panel2:#2a2640; --fg:#f3efff; --muted:#a9a3c4;
+  --accent:#ffb347; --accent2:#7cdfff; --line:#3a355a;
+  --display:"Baloo 2","Trebuchet MS",system-ui,sans-serif;
+  --body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;overflow-x:hidden}
+.app{max-width:520px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding-inline:16px;padding-block:12px 20px;gap:12px;box-sizing:border-box}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;font-family:var(--display)}
+.clock{font-size:15px;color:var(--accent);letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.prog{flex:1;height:8px;background:var(--panel2);border-radius:99px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width .5s}
+.count{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+.stage{position:relative;aspect-ratio:4/3;max-width:100%;border-radius:18px;overflow:hidden;border:2px solid var(--line)}
+.sky{position:absolute;inset:0;transition:background .8s}
+.ground{position:absolute;left:0;right:0;bottom:0;height:28%;transition:background .8s}
+.prop,.actor{position:absolute;line-height:1;user-select:none}
+.prop{font-size:clamp(28px,9vw,46px)}
+.actor{font-size:clamp(44px,15vw,74px);bottom:14%;animation:bob 2.4s ease-in-out infinite}
+.actor.you{left:10%}
+.actor.npc{right:10%;animation-delay:-1.2s}
+.actor .tag{display:block;font:800 11px var(--body);text-align:center;color:#fff;background:#0008;border-radius:6px;padding:2px 4px;margin-top:4px}
+@keyframes bob{50%{transform:translateY(-6px)}}
+.bubble{position:absolute;left:8%;right:8%;top:6%;background:#fffdf6;color:#1d1a2b;border-radius:14px;padding:10px 12px;font-size:15px;font-weight:600;min-height:2.6em;box-shadow:0 4px 0 #0003}
+.bubble::after{content:"";position:absolute;right:22%;bottom:-10px;border:10px solid transparent;border-top-color:#fffdf6;border-bottom:0}
+.bubble b{color:#b25a00}
+
+.panel{background:var(--panel);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.narr{color:var(--muted);font-size:15px;line-height:1.5;margin:0}
+.ask{font-family:var(--display);font-size:22px;margin:0;color:var(--accent);text-wrap:balance}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{all:unset;box-sizing:border-box;cursor:pointer;background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:12px 14px;font:600 15px/1.4 var(--body);color:var(--fg);display:flex;gap:10px;align-items:flex-start;transition:transform .12s,border-color .12s,background .12s}
+.opt:hover,.opt:focus-visible{border-color:var(--accent2);transform:translateX(3px)}
+.opt:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
+.opt .k{font-family:var(--display);color:var(--accent2);min-width:1.2em}
+.opt.chosen{border-color:var(--accent);background:#3a2f22}
+.opts.locked .opt:not(.chosen){opacity:.35}
+
+.btn{all:unset;cursor:pointer;text-align:center;background:var(--accent);color:#2a1700;font:800 18px var(--display);padding:12px 18px;border-radius:14px;box-shadow:0 4px 0 #a0601a}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 #a0601a}
+.btn:focus-visible{outline:3px solid var(--accent2);outline-offset:3px}
+.btn.ghost{background:transparent;color:var(--fg);border:2px solid var(--line);box-shadow:none}
+
+.title{font-family:var(--display);font-size:clamp(34px,10vw,48px);line-height:1;margin:0;text-wrap:balance}
+.title span{color:var(--accent)}
+.small{font-size:13px;color:var(--muted);line-height:1.5;margin:0}
+
+.fade{position:fixed;inset:0;background:var(--bg);display:grid;place-items:center;opacity:0;pointer-events:none;transition:opacity .45s;z-index:5}
+.fade.on{opacity:1;pointer-events:auto}
+.fade div{font-family:var(--display);font-size:28px;color:var(--accent);text-align:center}
+.fade p{font-family:var(--body);font-size:15px;color:var(--muted);margin:6px 0 0}
+
+.bars{display:flex;flex-direction:column;gap:10px}
+.bar{display:grid;grid-template-columns:7.5em 1fr 2.6em;gap:8px;align-items:center;font-size:14px}
+.bar .t{height:12px;background:var(--panel2);border-radius:99px;overflow:hidden}
+.bar .t i{display:block;height:100%;border-radius:99px;width:0;transition:width 1s .2s}
+.bar .v{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.verdict{background:var(--panel2);border-radius:14px;padding:14px;border:2px solid var(--line)}
+.verdict h3{font-family:var(--display);font-size:24px;margin:0 0 4px}
+.verdict p{margin:0;line-height:1.55;font-size:15px}
+/* Marca de la autora: flor + nombre en caligrafía */
+.brand{display:flex;align-items:center;justify-content:center;gap:10px;padding-block:6px}
+.brand .flor{font-size:34px;line-height:1;filter:drop-shadow(0 0 8px #ff8fc755);animation:gira 8s linear infinite}
+.brand .txt{display:flex;flex-direction:column;line-height:1}
+.brand .por{font:800 10px var(--body);letter-spacing:.22em;text-transform:uppercase;color:#f7a8cf}
+.brand .nom{font-family:"Great Vibes","Brush Script MT",cursive;font-size:34px;color:#ffc2e0;text-shadow:0 0 12px #ff8fc744}
+.brand.mini .flor{font-size:22px}
+.brand.mini .nom{font-size:24px}
+@keyframes gira{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="app" id="app"></div>
+<div class="fade" id="fade"><div><span id="fadeT"></span><p id="fadeS"></p></div></div>
+
+<script>
+// Rasgos que puntúa cada respuesta (como el test de la imagen: engaño, narcisismo, psicopatía, manipulación) + empatía como respuesta "sana"
+const TRAITS = {
+  A:{name:"Empatía",     color:"#7ee08a"},
+  E:{name:"Engaño",      color:"#7cdfff"},
+  N:{name:"Narcisismo",  color:"#ffd35c"},
+  P:{name:"Frialdad",    color:"#ff7a7a"},
+  M:{name:"Manipulación",color:"#c792ff"},
+};
+
+// Cada escena: hora, decorado, personaje, diálogo, narración y 4 opciones con el rasgo que suma
+const SCENES = [
+ {time:"07:40", place:"Aula", sky:"linear-gradient(#ffd9a0,#ffeccc)", ground:"#8b6b4a",
+  props:[["📚",8,48],["🕘",80,10],["🧑‍🏫",44,40]], npc:"🧑", npcTag:"Leo",
+  say:"El profe: «¡Excelente trabajo en grupo! ¿Quién lo hizo?» <b>Leo</b> hizo casi todo, pero está distraído.",
+  ask:"El profe te mira a ti. ¿Qué haces?",
+  opts:[["Digo que fue sobre todo Leo y que yo ayudé un poco.","A"],
+        ["Acepto el elogio. Leo ni se enteró.","E"],
+        ["Explico con detalle todo lo que «yo» aporté para que quede claro que soy el cerebro.","N"],
+        ["Le digo luego a Leo que lo defendí, para que me deba un favor.","M"]]},
+ {time:"09:15", place:"Calle", sky:"linear-gradient(#8fd3ff,#d8f1ff)", ground:"#6b6b78",
+  props:[["👛",48,70],["🏢",4,30],["🌳",82,34]], npc:"👵", npcTag:"Señora",
+  say:"Encuentras una billetera con <b>$80</b> y una cédula. Una señora a lo lejos busca algo en el suelo.",
+  ask:"¿Qué harías?",
+  opts:[["Me acerco a la señora y le pregunto si es suya.","A"],
+        ["Me quedo con el dinero; nadie me vio.","P"],
+        ["Se la devuelvo, pero le insinúo que merezco una recompensa.","M"],
+        ["Digo que no vi nada si alguien pregunta.","E"]]},
+ {time:"10:30", place:"Pasillo", sky:"linear-gradient(#c8b6ff,#ece6ff)", ground:"#5c5470",
+  props:[["🤫",48,40],["🚪",84,32]], npc:"👧", npcTag:"Ana",
+  say:"<b>Ana</b> te contó un secreto ayer. Ahora el grupo popular te pregunta qué le pasa.",
+  ask:"Te ofrecen entrar a su grupo si cuentas algo. ¿Qué haces?",
+  opts:[["No cuento nada. Es de Ana.","A"],
+        ["Lo cuento; así me gano su aceptación.","M"],
+        ["Invento algo más jugoso, total no es verdad.","E"],
+        ["Lo cuento. No es mi problema lo que le pase a Ana.","P"]]},
+ {time:"12:10", place:"Oficina", sky:"linear-gradient(#b8e6d6,#e8fff6)", ground:"#4c6b62",
+  props:[["💻",46,50],["☕",70,58],["📉",14,12]], npc:"🧔", npcTag:"Jefe",
+  say:"El jefe, molesto: «Alguien borró el archivo del cliente. ¿Quién fue?» Fuiste tú, sin querer.",
+  ask:"Todos se miran. ¿Qué dices?",
+  opts:[["Fui yo. Lo siento, ayudo a recuperarlo.","A"],
+        ["Me quedo callado y espero que no lo descubran.","E"],
+        ["Sugiero que fue el practicante, que es nuevo.","M"],
+        ["Digo que el sistema es malo; yo nunca me equivoco.","N"]]},
+ {time:"14:00", place:"Cafetería", sky:"linear-gradient(#ffc7a8,#fff0e6)", ground:"#7a5a46",
+  props:[["🍔",40,56],["🥤",56,60]], npc:"🧑‍🦱", npcTag:"Compañero",
+  say:"Tu compañero cuenta que lo <b>ascendieron</b>. Todos lo felicitan y nadie te pregunta nada a ti.",
+  ask:"¿Cómo reaccionas?",
+  opts:[["Lo felicito de verdad; se lo ganó.","A"],
+        ["Cambio el tema hacia mis logros, que son más grandes.","N"],
+        ["Siembro una duda: «qué raro, con lo poco que hace…».","M"],
+        ["Me da igual. Ni lo miro.","P"]]},
+ {time:"16:20", place:"Parada de bus", sky:"linear-gradient(#a9c1d9,#dfe9f3)", ground:"#5a6470",
+  props:[["🚏",6,26],["🌧️",70,8]], npc:"😢", npcTag:"Extraño",
+  say:"En la parada, una persona llora en silencio. Tu bus está por llegar.",
+  ask:"¿Qué harías?",
+  opts:[["Le pregunto si está bien o si necesita algo.","A"],
+        ["Subo al bus. No es asunto mío.","P"],
+        ["Le tomo una foto para subirla y ver qué opina la gente.","N"],
+        ["Me acerco por si me cuenta algo útil.","M"]]},
+ {time:"18:00", place:"Casa", sky:"linear-gradient(#ffb3c7,#ffe4ec)", ground:"#7a4a5a",
+  props:[["🛋️",40,52],["📱",62,40]], npc:"🧑‍🤝‍🧑", npcTag:"Tu pareja",
+  say:"Tu pareja (o mejor amigo) va a salir con otros amigos esta noche. Tú querías que se quedara contigo.",
+  ask:"¿Qué haces?",
+  opts:[["Le digo que disfrute; nos vemos otro día.","A"],
+        ["Le hago sentir culpa hasta que cancele.","M"],
+        ["Le digo que estoy enfermo, aunque no lo esté.","E"],
+        ["Me enojo: debería preferirme a mí siempre.","N"]]},
+ {time:"19:30", place:"Tienda", sky:"linear-gradient(#ffe48a,#fff6cf)", ground:"#8a7a3a",
+  props:[["🛒",10,52],["🧾",46,44]], npc:"🧑‍💼", npcTag:"Cajero",
+  say:"El cajero se equivoca y te devuelve <b>$10 de más</b>. Si falta dinero, lo descuentan de su sueldo.",
+  ask:"¿Qué harías?",
+  opts:[["Le aviso y devuelvo los $10.","A"],
+        ["Me voy rápido. Su error, su problema.","P"],
+        ["Me lo quedo y, si se da cuenta, digo que no me fijé.","E"],
+        ["Le aviso, pero pido un descuento por mi «honestidad».","M"]]},
+ {time:"21:00", place:"Redes", sky:"linear-gradient(#b7a6ff,#e3dcff)", ground:"#4a3f7a",
+  props:[["❤️",20,30],["📸",70,24],["👍",46,10]], npc:"🤳", npcTag:"Tu post",
+  say:"Subiste una foto hace una hora y solo tiene <b>3 likes</b>. La de tu amiga tiene 200.",
+  ask:"¿Qué haces?",
+  opts:[["Nada. Me gustó la foto igual.","A"],
+        ["La borro; si no brilla, no la quiero.","N"],
+        ["Escribo en varios grupos pidiendo likes con excusas tristes.","M"],
+        ["Comento algo cruel en la foto de mi amiga.","P"]]},
+ {time:"22:30", place:"Reunión", sky:"linear-gradient(#5d5a8a,#9a96c9)", ground:"#2e2b4a",
+  props:[["🌙",80,8],["💬",44,38]], npc:"🙋", npcTag:"Colega",
+  say:"Al cerrar el día, un colega critica tu idea frente a todos: «Eso no va a funcionar».",
+  ask:"Última decisión. ¿Qué haces?",
+  opts:[["Le pregunto por qué y escucho; puede tener razón.","A"],
+        ["Me ofendo: claramente no entiende mi nivel.","N"],
+        ["Luego hablo mal de él con el jefe a sus espaldas.","M"],
+        ["Finjo estar de acuerdo y luego hago lo que quiero.","E"]]},
+];
+
+// Textos del resultado según el rasgo dominante
+const RESULT = {
+  A:"Tus respuestas sugieren un perfil <b>empático y honesto</b>. Tiendes a reconocer el mérito ajeno, asumir tus errores y pensar en cómo se sienten los demás.",
+  E:"Tus respuestas sugieren cierta tendencia al <b>engaño</b>. En situaciones incómodas, prefieres ocultar la verdad o mentir para salir bien librado.",
+  N:"Tus respuestas sugieren rasgos de <b>narcisismo</b>. Te importa mucho cómo te ven y te cuesta cuando la atención o el reconocimiento son para otros.",
+  P:"Tus respuestas sugieren cierta <b>frialdad emocional</b> (rasgo asociado a la psicopatía). Las consecuencias para los demás parecen pesarte poco.",
+  M:"Tus respuestas sugieren tendencia a la <b>manipulación</b>. Buscas mover a las personas, con culpa, favores o rumores, para conseguir lo que quieres.",
+};
+
+const BRAND = cls => `<div class="brand ${cls}"><span class="flor">🌸</span><span class="txt"><span class="por">Un juego de</span><span class="nom">Mercedes Mendoza</span></span></div>`;
+
+const $ = s => document.querySelector(s);
+const app = $("#app");
+let i = 0, score = {}, answers = [];
+
+function shuffle(a){a=a.slice();for(let k=a.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[a[k],a[j]]=[a[j],a[k]];}return a;}
+function fade(t,s){return new Promise(r=>{$("#fadeT").textContent=t;$("#fadeS").textContent=s||"";$("#fade").classList.add("on");setTimeout(()=>{r();setTimeout(()=>$("#fade").classList.remove("on"),350);},900);});}
+
+function intro(){
+  app.innerHTML=`
+   <div class="stage"><div class="sky" style="background:linear-gradient(#2b2650,#4b3f86)"></div><div class="ground" style="background:#1d1a33"></div>
+     <span class="prop" style="left:78%;top:8%">🌙</span><span class="prop" style="left:10%;top:12%">⭐</span>
+     <span class="actor you" style="left:38%">🧍<span class="tag">Tú</span></span></div>
+   <h1 class="title">Un Día <span>Cualquiera</span></h1>
+   ${BRAND("")}
+   <p class="narr">Vas a vivir un día normal: aula, calle, oficina, casa… En cada escena aparece una situación. Elige lo que <b>de verdad</b> harías, no lo que quedaría mejor. Son ${SCENES.length} decisiones.</p>
+   <button class="btn" id="go">Empezar el día</button>
+   <p class="small">Juego de entretenimiento. No es un diagnóstico psicológico.</p>`;
+  $("#go").onclick=()=>{i=0;score={A:0,E:0,N:0,P:0,M:0};answers=[];fade("07:30","Suena la alarma…").then(scene);};
+}
+
+function scene(){
+  const s=SCENES[i];
+  const props=s.props.map(([e,x,y])=>`<span class="prop" style="left:${x}%;top:${y}%">${e}</span>`).join("");
+  const opts=shuffle(s.opts);
+  app.innerHTML=`
+   <div class="top"><span class="clock">${s.time} · ${s.place}</span><div class="prog"><i style="width:${i/SCENES.length*100}%"></i></div><span class="count">${i+1}/${SCENES.length}</span></div>
+   <div class="stage"><div class="sky" style="background:${s.sky}"></div><div class="ground" style="background:${s.ground}"></div>${props}
+     <span class="actor you">🧍<span class="tag">Tú</span></span>
+     <span class="actor npc">${s.npc}<span class="tag">${s.npcTag}</span></span>
+     <div class="bubble" id="bub"></div></div>
+   <div class="panel"><h2 class="ask">${s.ask}</h2>
+     <div class="opts" id="opts">${opts.map((o,k)=>`<button class="opt" data-t="${o[1]}"><span class="k">${"ABCD"[k]}</span><span>${o[0]}</span></button>`).join("")}</div></div>`;
+  typeText($("#bub"),s.say);
+  app.querySelectorAll(".opt").forEach(b=>b.onclick=()=>choose(b,s));
+}
+
+function typeText(el,html){
+  // efecto máquina de escribir respetando las etiquetas <b>
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches){el.innerHTML=html;return;}
+  let n=0;const plain=html.replace(/<[^>]+>/g,"");
+  const t=setInterval(()=>{n+=2;if(n>=plain.length){el.innerHTML=html;clearInterval(t);return;}
+    let c=0,out="",inTag=false;for(const ch of html){if(ch==="<")inTag=true;if(inTag){out+=ch;if(ch===">")inTag=false;continue;}if(c++<n)out+=ch;}
+    el.innerHTML=out;},18);
+}
+
+function choose(btn,s){
+  const box=$("#opts"); if(box.classList.contains("locked"))return;
+  box.classList.add("locked"); btn.classList.add("chosen");
+  score[btn.dataset.t]++; answers.push(btn.dataset.t);
+  setTimeout(()=>{ i++;
+    if(i<SCENES.length) fade(SCENES[i].time, "Más tarde, en: "+SCENES[i].place).then(scene);
+    else fade("23:59","El día termina…").then(result);
+  },600);
+}
+
+function result(){
+  const order=Object.keys(TRAITS).sort((a,b)=>score[b]-score[a]);
+  const n=SCENES.length;
+  // Si empatía empata con otro rasgo, se muestra el rasgo no empático (es el dato más informativo)
+  const dark=order.filter(k=>k!=="A")[0];
+  const main=(score[dark]>=score.A)?dark:"A";
+  app.innerHTML=`
+   <div class="top"><span class="clock">Fin del día</span><div class="prog"><i style="width:100%"></i></div><span class="count">${n}/${n}</span></div>
+   <h1 class="title">Tu <span>resultado</span></h1>
+   <div class="verdict" style="border-color:${TRAITS[main].color}">
+     <h3 style="color:${TRAITS[main].color}">${TRAITS[main].name}</h3>
+     <p>En base a tus respuestas, ${RESULT[main].charAt(0).toLowerCase()+RESULT[main].slice(1)}</p></div>
+   <div class="panel"><div class="bars">${order.map(k=>`
+     <div class="bar"><span>${TRAITS[k].name}</span><span class="t"><i data-w="${score[k]/n*100}" style="background:${TRAITS[k].color}"></i></span><span class="v">${score[k]}/${n}</span></div>`).join("")}</div></div>
+   <button class="btn" id="again">Volver a jugar</button>
+   ${BRAND("mini")}
+   <p class="small">Resultado orientativo, con fines de entretenimiento. No sustituye una evaluación profesional.</p>`;
+  requestAnimationFrame(()=>app.querySelectorAll(".bar i").forEach(b=>b.style.width=b.dataset.w+"%"));
+  $("#again").onclick=intro;
+}
+
+intro();
+</script>
+
+</html>
